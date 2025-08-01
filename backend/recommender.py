@@ -27,12 +27,12 @@ def get_recommendations_by_mood(mood: str, limit: int = 5):
     params = {"search": search_query, "limit": str(limit)}
 
     try:
-        print(f"▶️  Searching for perfumes with accords: '{search_query}'...")
+        print(f"▶  Searching for perfumes with accords: '{search_query}'...")
         response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        print(f"❌ API Error: {e}")
+        print(f" API Error: {e}")
         return []
 
 # This part runs when you test the file directly
@@ -41,9 +41,9 @@ if __name__ == "__main__":
     perfumes = get_recommendations_by_mood(test_mood)
     
     if perfumes:
-        print(f"\n✅ Found {len(perfumes)} perfumes for a '{test_mood}' mood:")
+        print(f"\n Found {len(perfumes)} perfumes for a '{test_mood}' mood:")
         for p in perfumes:
             print(f"- {p.get('Name')} by {p.get('Brand')}")
     else:
-        print(f"⚠️ No perfumes found for '{test_mood}'.")
+        print(f" No perfumes found for '{test_mood}'.")
         

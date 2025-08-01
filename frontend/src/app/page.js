@@ -1,140 +1,199 @@
 'use client';
 
-import { useState, Fragment } from 'react';
-import Image from 'next/image';
+import React, { useState, useEffect } from 'react';
+import { Search, Loader2, Sparkles } from 'lucide-react';
 
-// A new component for the pulsing "skeleton" placeholders while loading
-const SkeletonCard = () => (
-  <div className="bg-white/5 p-6 rounded-2xl border border-gray-800 animate-pulse">
-    <div className="w-full h-48 bg-gray-700 rounded-lg mx-auto"></div>
-    <div className="border-t border-gray-700 pt-4 mt-4">
-      <div className="h-6 w-3/4 bg-gray-700 rounded mb-2"></div>
-      <div className="h-4 w-1/2 bg-gray-700 rounded mb-3"></div>
-      <div className="flex flex-wrap gap-2">
-        <div className="h-5 w-16 bg-gray-700 rounded-full"></div>
-        <div className="h-5 w-20 bg-gray-700 rounded-full"></div>
-      </div>
-    </div>
-  </div>
-);
+const perfumeImages = [
+  'https://images.pexels.com/photos/1961795/pexels-photo-1961795.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+  'https://images.pexels.com/photos/965989/pexels-photo-965989.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+  'https://images.pexels.com/photos/208052/pexels-photo-208052.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+  'https://images.pexels.com/photos/1233414/pexels-photo-1233414.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'
+];
 
 export default function Home() {
-  const [mood, setMood] = useState('');
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
   const [perfumes, setPerfumes] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prevIndex) => 
+        (prevIndex + 1) % perfumeImages.length
+      );
+    }, 5000); // Change image every 5 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSearch = async (e) => {
     e.preventDefault();
-    if (!mood) {
-      setError('Please enter a mood or occasion.');
-      return;
-    }
+    if (!searchQuery.trim()) return;
+    
     setIsLoading(true);
-    setError(null);
-    setPerfumes([]);
-    setHasSearched(true);
-
+    setError('');
+    setShowResults(true);
+    
     try {
-      const response = await fetch(`http://127.0.0.1:8000/search/${mood}`);
-      if (!response.ok) throw new Error('Server response was not ok.');
+      // === THIS IS THE CORRECTED PART ===
+      // This now points to your working FastAPI backend endpoint
+      const response = await fetch(`http://localhost:8000/search/${searchQuery}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch perfume recommendations. Is the backend running?');
+      }
+      
       const data = await response.json();
-      setPerfumes(data.results);
-    } catch (error) {
-      console.error('Failed to fetch perfumes:', error);
-      setError('Could not fetch perfumes. Please ensure the backend server is running.');
+      // Your backend returns data in a `results` key
+      setPerfumes(data.results || []);
+    } catch (err) {
+      setError('Unable to fetch recommendations. Please try again.');
+      console.error('Search error:', err);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const clearResults = () => {
+    setShowResults(false);
+    setPerfumes([]);
+    setSearchQuery('');
+    setError('');
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-8 bg-black text-white font-sans relative overflow-hidden">
-      <div className="w-full max-w-5xl text-center z-10">
-        {/* Glassmorphism Container */}
-        <div className="bg-black/30 backdrop-blur-xl p-8 sm:p-12 rounded-2xl border border-white/10">
-          <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500 mb-3 tracking-tighter">
+    <div className="relative min-h-screen overflow-hidden bg-black">
+      {/* Background Carousel */}
+      <div className="absolute inset-0 w-full h-full">
+        {perfumeImages.map((image, index) => (
+          <div
+            key={index}
+            className={`absolute inset-0 w-full h-full bg-cover bg-center transition-opacity duration-2000 ease-in-out ${
+              index === currentImageIndex ? 'opacity-100' : 'opacity-0'
+            }`}
+            style={{
+              backgroundImage: `url(${image})`,
+            }}
+          />
+        ))}
+        {/* Dark Overlay */}
+        <div className="absolute inset-0 bg-black bg-opacity-60" />
+      </div>
+
+      {/* Main Content */}
+      <div className={`relative z-10 min-h-screen flex flex-col items-center justify-center p-4 transition-all duration-700 ease-in-out ${showResults ? 'pt-24 pb-12' : 'pt-4 pb-4'}`}>
+        <div className={`text-center max-w-4xl mx-auto w-full transition-all duration-700 ease-in-out ${showResults ? 'flex-shrink-0' : 'flex-grow flex flex-col justify-center'}`}>
+          <h1 className={`font-serif font-light text-gray-100 mb-6 tracking-wide transition-all duration-500 ${showResults ? 'text-4xl' : 'text-6xl md:text-8xl'}`}>
             ScentSphere
           </h1>
-          <p className="text-md sm:text-lg text-gray-300 mb-8">
-            Discover your next signature fragrance through the power of AI.
+          <p className={`text-gray-200 font-light tracking-wide transition-all duration-500 ${showResults ? 'text-lg mb-8' : 'text-xl md:text-2xl mb-12'}`}>
+            Discover your signature scent.
           </p>
-
-          <form onSubmit={handleSearch} className="flex gap-2 mb-10">
-            <input
-              type="text"
-              value={mood}
-              onChange={(e) => setMood(e.target.value)}
-              placeholder="e.g., romantic, fresh, professional..."
-              className="flex-grow p-4 text-lg bg-white/5 border-2 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-            />
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105"
-            >
-              {isLoading ? 'Searching...' : 'Discover'}
-            </button>
-          </form>
-
-          {/* Display Area */}
-          <div className="min-h-[400px] text-left">
-            {error && <p className="text-center text-red-400">{error}</p>}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {isLoading ? (
-                // Render 3 skeleton cards while loading
-                <Fragment>
-                  <SkeletonCard />
-                  <SkeletonCard />
-                  <SkeletonCard />
-                </Fragment>
-              ) : (
-                perfumes.map((perfume, index) => (
-                  <div 
-                    key={index} 
-                    className="bg-white/5 p-5 rounded-xl border border-gray-800 flex flex-col gap-4 transition-all duration-300 transform hover:scale-[1.03] hover:border-purple-500/50 fade-in"
-                    style={{ animationDelay: `${index * 100}ms` }}
-                  >
-                    <Image
-                      src={perfume['Image URL']}
-                      alt={`Bottle of ${perfume.Name}`}
-                      width={200}
-                      height={200}
-                      className="w-full h-48 object-contain rounded-md"
-                    />
-                    <div className="border-t border-gray-700 pt-4">
-                      <h2 className="text-xl font-bold text-purple-300 truncate" title={perfume.Name}>{perfume.Name}</h2>
-                      <p className="text-sm text-gray-400 mb-3">by {perfume.Brand}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {perfume['Main Accords']?.slice(0, 3).map(accord => (
-                          <span key={accord} className="bg-purple-900/50 text-purple-300 text-xs font-medium px-2.5 py-1 rounded-full">
-                            {accord}
-                          </span>
-                        ))}
-                      </div>
-                      <a 
-                        href={perfume['Purchase URL']} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="block w-full mt-4 text-center bg-gray-700/50 text-white font-semibold py-2 rounded-lg hover:bg-gray-700 transition-colors"
-                      >
-                        View Details
-                      </a>
-                    </div>
-                  </div>
-                ))
-              )}
-              {hasSearched && !isLoading && perfumes.length === 0 && !error && (
-                <div className="col-span-full text-center py-16">
-                   <p className="text-gray-500">No fragrances found. Try a different mood like "casual" or "night out".</p>
+          
+          <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
+                <Search className="h-6 w-6 text-gray-400 group-focus-within:text-purple-400 transition-colors duration-200" />
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Describe a mood, occasion, or note..."
+                disabled={isLoading}
+                className="w-full pl-16 pr-8 py-5 text-lg bg-white bg-opacity-10 backdrop-blur-sm border border-gray-300 border-opacity-30 rounded-full text-gray-100 placeholder-gray-300 focus:outline-none focus:ring-4 focus:ring-purple-500 focus:ring-opacity-50 focus:border-purple-400 focus:bg-opacity-15 transition-all duration-300 hover:bg-opacity-15 hover:border-opacity-50"
+              />
+              {isLoading && (
+                <div className="absolute inset-y-0 right-0 pr-6 flex items-center">
+                  <Loader2 className="h-6 w-6 text-purple-400 animate-spin" />
                 </div>
               )}
             </div>
-          </div>
+          </form>
+          
+          {!showResults ? (
+            <div className="mt-8">
+              <p className="text-gray-300 text-sm font-light tracking-wider">
+                Press Enter to begin your scent journey
+              </p>
+            </div>
+          ) : (
+            <div className="mt-6">
+              <button
+                onClick={clearResults}
+                className="text-purple-400 hover:text-purple-300 text-sm font-light tracking-wider transition-colors duration-200"
+              >
+                ← Start a new search
+              </button>
+            </div>
+          )}
         </div>
+
+        {/* Search Results */}
+        {showResults && (
+          <div className="w-full max-w-6xl mx-auto px-4 py-12 flex-grow">
+            {isLoading && (
+              <div className="text-center py-20">
+                <Loader2 className="h-12 w-12 text-purple-400 animate-spin mx-auto mb-4" />
+                <p className="text-gray-300 text-lg">Finding your perfect scents...</p>
+              </div>
+            )}
+
+            {error && (
+              <div className="text-center py-20">
+                <div className="bg-red-500 bg-opacity-20 border border-red-500 border-opacity-30 rounded-lg p-6 max-w-md mx-auto">
+                  <p className="text-red-300 text-lg">{error}</p>
+                </div>
+              </div>
+            )}
+
+            {!isLoading && !error && perfumes.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {perfumes.map((perfume, index) => (
+                  <div
+                    key={index}
+                    className="bg-white bg-opacity-5 backdrop-blur-md rounded-lg p-6 border border-gray-300 border-opacity-20 hover:bg-opacity-10 hover:border-opacity-30 transition-all duration-300 group"
+                  >
+                    <div className="mb-4 overflow-hidden rounded-lg">
+                      <img
+                        src={perfume['Image URL']}
+                        alt={perfume.Name}
+                        className="w-full h-48 object-contain group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                      />
+                    </div>
+                    <h3 className="text-xl font-serif text-gray-100 group-hover:text-purple-300 transition-colors duration-200">
+                      {perfume.Name}
+                    </h3>
+                    <p className="text-purple-400 font-medium">
+                      {perfume.Brand}
+                    </p>
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      {perfume['Main Accords']?.slice(0, 4).map((note, noteIndex) => (
+                        <span
+                          key={noteIndex}
+                          className="px-3 py-1 bg-purple-600 bg-opacity-30 text-purple-200 text-xs rounded-full"
+                        >
+                          {note}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+             {!isLoading && !error && perfumes.length === 0 && showResults && (
+                <div className="text-center py-20">
+                    <div className="bg-gray-800 bg-opacity-50 rounded-lg p-8 max-w-md mx-auto">
+                        <p className="text-gray-300 text-lg">No perfumes found for your search.</p>
+                    </div>
+                </div>
+            )}
+          </div>
+        )}
       </div>
-    </main>
+    </div>
   );
 }

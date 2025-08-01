@@ -14,14 +14,14 @@ def search_perfumes(query: str, limit: int = 5):
     url = "https://api.fragella.com/api/v1/fragrances"
 
     if not API_KEY:
-        print("❌ ERROR: API key not found. Check your .env file.")
+        print(" ERROR: API key not found. Check your .env file.")
         return []
 
     headers = {"x-api-key": API_KEY}
     params = {"search": query, "limit": str(limit)}
 
     try:
-        print(f"▶️  Searching for perfumes matching: '{query}'...")
+        print(f"▶  Searching for perfumes matching: '{query}'...")
         response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
 
@@ -30,10 +30,10 @@ def search_perfumes(query: str, limit: int = 5):
         return data
 
     except requests.exceptions.RequestException as e:
-        print(f"❌ API Error: {e}")
+        print(f" API Error: {e}")
         # If there's a detailed error message in the response, print it
         if 'response' in locals() and response.text:
-            print(f"❌ Response Body: {response.text}")
+            print(f" Response Body: {response.text}")
         return []
 
 # This part lets you test the file directly
@@ -44,8 +44,8 @@ if __name__ == "__main__":
     perfumes = search_perfumes(test_query)
 
     if perfumes:
-        print(f"✅ Found {len(perfumes)} perfumes for query '{test_query}':")
+        print(f" Found {len(perfumes)} perfumes for query '{test_query}':")
         for p in perfumes:
             print(f"- {p.get('Name')} by {p.get('Brand')}")
     else:
-        print("⚠️ Test finished, but no perfumes were returned.")
+        print(" Test finished, but no perfumes were returned.")
